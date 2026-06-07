@@ -124,6 +124,13 @@ def test_strip_trailing_whitespace():
     assert lines[1] == "world"
 
 
+def test_leading_whitespace_collapsed_not_stripped():
+    # Leading whitespace on a line is collapsed to a single space, not removed.
+    s = InputSanitizer()
+    result = s.sanitize("a\n   leading")
+    assert result.sanitized == "a\n leading"
+
+
 def test_normalize_disabled():
     s = InputSanitizer(normalize_whitespace=False)
     result = s.sanitize("a   b")
@@ -319,3 +326,12 @@ def test_combined_rules():
     assert len(result.sanitized) <= 20
     assert "\x00" not in result.sanitized
     assert len(result.changes) >= 2
+
+
+def test_module_docstring_example():
+    # Mirrors the example in the module docstring / README.
+    s = InputSanitizer(max_length=500, strip_control_chars=True)
+    result = s.sanitize("Hello\x00 World!\n\n\n  Extra spaces   ")
+    assert result.sanitized == "Hello World!\n\n Extra spaces"
+    assert result.was_modified
+    assert result.changes[0] == "stripped 1 control char(s)"

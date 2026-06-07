@@ -12,15 +12,19 @@ Example::
     sanitizer = InputSanitizer(max_length=500, strip_control_chars=True)
     result = sanitizer.sanitize("Hello\\x00 World!\\n\\n\\n  Extra spaces   ")
 
-    print(result.sanitized)    # 'Hello World!\\n\\nExtra spaces'
+    print(result.sanitized)    # 'Hello World!\\n\\n Extra spaces'
     print(result.was_modified) # True
     print(result.changes)      # ['stripped 1 control char(s)', ...]
+
+Whitespace normalization collapses runs of spaces/tabs to a single space and
+strips *trailing* whitespace from each line; leading whitespace is preserved
+(collapsed, not removed), so a line like ``"  Extra spaces"`` becomes
+``" Extra spaces"``.
 """
 
 from __future__ import annotations
 
 import re
-import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -253,9 +257,3 @@ def _limit_lines(text: str, max_lines: int) -> str:
     if len(lines) <= max_lines:
         return text
     return "\n".join(lines[:max_lines])
-
-
-def _is_control_char(c: str) -> bool:
-    """Return ``True`` if *c* is an ASCII control character (non-printable)."""
-    cat = unicodedata.category(c)
-    return cat == "Cc" and c not in {"\t", "\n", "\r"}
